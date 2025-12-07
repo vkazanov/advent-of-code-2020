@@ -1,0 +1,7 @@
+
+* Day 18
+
+An unusual parsing problem. The first part is a primitive parser with only one recursive
+element: parens.
+
+The second part introduces unusual precedence (addition over multiplication).
