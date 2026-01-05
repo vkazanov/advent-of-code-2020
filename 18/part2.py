@@ -20,14 +20,13 @@ class tokenizer:
             return None
         return self.s[self.i]
 
-    def __next__(self):
+    def pop(self):
         self.skip_space()
         if self.i >= len(self.s):
-            raise StopIteration()
+            return None
 
         c = self.s[self.i]
         self.i += 1
-
         if c.isnumeric():
             return int(c)
         else:
@@ -36,25 +35,25 @@ class tokenizer:
 def eval_expr(tokenizer):
     val = eval_factor(tokenizer)
     while tokenizer.peek() == "*":
-        next(tokenizer)
+        tokenizer.pop()
         val *= eval_factor(tokenizer)
     return val
 
 def eval_factor(tokenizer):
     val = eval_term(tokenizer)
     while tokenizer.peek() == "+":
-        next(tokenizer)
+        tokenizer.pop()
         val += eval_term(tokenizer)
     return val
 
 def eval_term(tokenizer):
     if tokenizer.peek() == "(":
-        next(tokenizer)
+        tokenizer.pop()
         val = eval_expr(tokenizer)
-        assert(next(tokenizer)== ")")
+        assert(tokenizer.pop() == ")")
         return val
     else:
-        return next(tokenizer)
+        return tokenizer.pop()
 
 
 # assert(eval_expr(tokenizer("1")) == 1)
