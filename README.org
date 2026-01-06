@@ -5,3 +5,10 @@ An unusual parsing problem. The first part is a primitive parser with only one r
 element: parens.
 
 The second part introduces unusual precedence (addition over multiplication).
+
+* Day 19
+
+The first problem introduces a set of grammar rules that a given string can match
+agains. Solved it by a) merging rules into a single tree; b) doing a recursive matcher.
+
+The second one adds 2 expanding rules.
