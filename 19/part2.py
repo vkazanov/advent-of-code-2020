@@ -1,18 +1,19 @@
 import pprint
+from functools import lru_cache
 from dataclasses import dataclass
 
 # inp = open("input-test-2.txt")
 inp = open("input-2.txt")
 
-@dataclass
+@dataclass(frozen=True)
 class Ref:
     i: int
 
-@dataclass
+@dataclass(frozen=True)
 class Seq:
     parts: tuple
 
-@dataclass
+@dataclass(frozen=True)
 class Alt:
     options: tuple
 
@@ -39,43 +40,44 @@ for line in inp:
     if not line: break
     parse_rule(all_rules, line)
 
-def check(line, rule, i, rules):
-    match rule:
-        case str(r):
-            if i < len(line) and r == line[i]:
-                return [i + 1]
-            return []
+def check(line, rules):
 
-        case Seq(rule_seq):
-            positions = [i]
-            for r in rule_seq:
-                next_positions = []
-                for next_i in positions:
-                    next_positions.extend(check(line, r, next_i, rules))
-                positions = next_positions
-                if not positions:
-                    break
-            return next_positions
+    @lru_cache(maxsize=None)
+    def run(rule, i):
+        match rule:
+            case str(r):
+                if i < len(line) and r == line[i]:
+                    return frozenset((i + 1,))
+                return frozenset()
 
-        case Alt(options):
-            res_positions = []
-            for r in options:
-                next_positions = check(line, r, i, rules)
-                res_positions.extend(next_positions)
-            return res_positions
+            case Seq(rule_seq):
+                positions = set((i,))
+                for r in rule_seq:
+                    next_positions = set()
+                    for next_i in positions:
+                        next_positions.update(run(r, next_i))
+                    positions = next_positions
+                    if not positions:
+                        break
+                return frozenset(next_positions)
 
-        case Ref(rule_i):
-            return check(line, rules[rule_i], i, rules)
+            case Alt(options):
+                res_positions = set()
+                for r in options:
+                    next_positions = run(r, i)
+                    res_positions.update(next_positions)
+                return frozenset(res_positions)
 
-        case _:
-            print("invalid: ", rule)
-            assert False
+            case Ref(rule_i):
+                return run(rules[rule_i], i)
 
-counter = 0
-for line in inp:
-    line = line.strip()
-    if any(i == len(line) for i in check(line, all_rules[0], 0, all_rules)):
-        counter += 1
+            case _:
+                print("invalid: ", rule)
+                assert False
+
+    return len(line) in run(rules[0], 0)
+
+counter = sum(check(line.strip(), all_rules) for line in inp)
 
 print(counter)
 assert(counter == 267)
