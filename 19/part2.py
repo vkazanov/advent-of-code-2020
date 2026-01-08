@@ -1,90 +1,71 @@
-from io import StringIO
 import pprint
-from util import cstr, COLOR, FORMAT
 from dataclasses import dataclass
 
 # inp = open("input-test-2.txt")
 inp = open("input-2.txt")
 
 @dataclass
-class Rule:
-    value: int
-    def __init__(self, value):
-        self.value = value
+class Ref:
+    i: int
 
 @dataclass
 class Seq:
-    value: list
-    def __init__(self, value):
-        self.value = value
+    parts: tuple
 
 @dataclass
 class Alt:
-    value: list
-    def __init__(self, value):
-        self.value = value
+    options: tuple
 
-all_rules = {}
-
-def parse(rule_line):
+def parse_rule(rules, rule_line):
     idx, right = rule_line.split(": ")
     idx = int(idx)
     if " | " not in right:
-        all_rules[idx] = Seq(parse_seq(right))
+        rules[idx] = parse_seq(right)
     else:
-        all_rules[idx] = Alt([Seq(parse_seq(alt)) for alt in right.split(" | ")])
+        rules[idx] = Alt(tuple(parse_seq(option) for option in right.split(" | ")))
 
 def parse_seq(seq_line):
-    res = []
+    parts = []
     for c in seq_line.split(" "):
-        if c.isnumeric():
-            res.append(Rule(int(c)))
+        if c.isdigit():
+            parts.append(Ref(int(c)))
         else:
-            res.append(c[1:-1])
-    return res
+            parts.append(c.strip('"'))
+    return Seq(tuple(parts))
 
+all_rules = {}
 for line in inp:
     line = line.strip()
     if not line: break
-    parse(line)
+    parse_rule(all_rules, line)
 
 def check(line, rule, i, rules):
     match rule:
         case str(r):
             if i < len(line) and r == line[i]:
-                return True, [i + 1]
-            else:
-                return False, [i]
+                return [i + 1]
+            return []
 
         case Seq(rule_seq):
-            iss = [i]
+            positions = [i]
             for r in rule_seq:
-                if not iss:
-                    return False, [i]
-                next_iss = []
-                for next_i in iss:
-                    this_res, this_iss = check(line, r, next_i, rules)
-                    if this_res:
-                        next_iss.extend(this_iss)
-                iss = next_iss
-            return True, next_iss
+                next_positions = []
+                for next_i in positions:
+                    next_positions.extend(check(line, r, next_i, rules))
+                positions = next_positions
+                if not positions:
+                    break
+            return next_positions
 
-        case Alt(rule_alt):
-            res_iss = []
-            for r in rule_alt:
-                this_res, next_iss = check(line, r, i, rules)
-                if this_res:
-                    res_iss.extend(next_iss)
-            if res_iss:
-                return True, res_iss
-            else:
-                return False, [i]
+        case Alt(options):
+            res_positions = []
+            for r in options:
+                next_positions = check(line, r, i, rules)
+                res_positions.extend(next_positions)
+            return res_positions
 
-        case Rule(rule_i):
-            this_res, next_iss = check(line, rules[rule_i], i, rules)
-            if this_res:
-                return True, next_iss
-            return False, [i]
+        case Ref(rule_i):
+            return check(line, rules[rule_i], i, rules)
 
         case _:
             print("invalid: ", rule)
@@ -93,8 +74,7 @@ def check(line, rule, i, rules):
 counter = 0
 for line in inp:
     line = line.strip()
-    res, iss = check(line, all_rules[0], 0, all_rules)
-    if res and any(i == len(line) for i in iss):
+    if any(i == len(line) for i in check(line, all_rules[0], 0, all_rules)):
         counter += 1
 
 print(counter)
