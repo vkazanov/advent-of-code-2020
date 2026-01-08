@@ -6,33 +6,23 @@ from dataclasses import dataclass
 inp = open("input-2.txt")
 
 @dataclass
-class Ref:
-    i: int
+class Ref: i: int
 
 @dataclass
-class Seq:
-    parts: tuple
+class Seq: parts: tuple
 
 @dataclass
-class Alt:
-    options: tuple
+class Alt: options: tuple
 
 def parse_rule(rules, rule_line):
-    idx, right = rule_line.split(": ")
-    idx = int(idx)
-    if " | " not in right:
-        rules[idx] = parse_seq(right)
-    else:
-        rules[idx] = Alt(tuple(parse_seq(option) for option in right.split(" | ")))
+    lhs, rhs = rule_line.split(": ")
+    rules[int(lhs)] = parse_alt(rhs) if " | " in rhs else parse_seq(rhs)
+
+def parse_alt(alt_line):
+    return Alt(tuple(parse_seq(opt) for opt in alt_line.split(" | ")))
 
 def parse_seq(seq_line):
-    parts = []
-    for c in seq_line.split():
-        if c.isdigit():
-            parts.append(Ref(int(c)))
-        else:
-            parts.append(c.strip('"'))
-    return Seq(tuple(parts))
+    return Seq(tuple(Ref(int(c)) if c.isdigit() else c[1:-1] for c in seq_line.split()))
 
 all_rules = {}
 for line in inp:
