@@ -5,15 +5,15 @@ from dataclasses import dataclass
 # inp = open("input-test-2.txt")
 inp = open("input-2.txt")
 
-@dataclass(frozen=True)
+@dataclass
 class Ref:
     i: int
 
-@dataclass(frozen=True)
+@dataclass
 class Seq:
     parts: tuple
 
-@dataclass(frozen=True)
+@dataclass
 class Alt:
     options: tuple
 
@@ -27,7 +27,7 @@ def parse_rule(rules, rule_line):
 
 def parse_seq(seq_line):
     parts = []
-    for c in seq_line.split(" "):
+    for c in seq_line.split():
         if c.isdigit():
             parts.append(Ref(int(c)))
         else:
@@ -42,40 +42,33 @@ for line in inp:
 
 def check(line, rules):
 
-    @lru_cache(maxsize=None)
-    def run(rule, i):
-        match rule:
-            case str(r):
-                if i < len(line) and r == line[i]:
-                    return frozenset((i + 1,))
-                return frozenset()
+    def match_node(node, i):
+        match node:
+            case str(c):
+                return frozenset((i + 1,)) if i < len(line) and c == line[i] else frozenset()
 
             case Seq(rule_seq):
-                positions = set((i,))
+                positions = {i}
                 for r in rule_seq:
-                    next_positions = set()
-                    for next_i in positions:
-                        next_positions.update(run(r, next_i))
-                    positions = next_positions
+                    positions = {p2 for p in positions for p2 in match_node(r, p)}
                     if not positions:
                         break
-                return frozenset(next_positions)
+                return frozenset(positions)
 
             case Alt(options):
-                res_positions = set()
-                for r in options:
-                    next_positions = run(r, i)
-                    res_positions.update(next_positions)
-                return frozenset(res_positions)
+                return frozenset(p2 for opt in options for p2 in match_node(opt, i))
 
             case Ref(rule_i):
-                return run(rules[rule_i], i)
+                return match_rule(rule_i, i)
 
             case _:
-                print("invalid: ", rule)
-                assert False
+                raise TypeError(f"Invalid rule: {node!r}")
 
-    return len(line) in run(rules[0], 0)
+    @lru_cache(maxsize=None)
+    def match_rule(rule_i, i):
+        return match_node(rules[rule_i], i)
+
+    return len(line) in match_rule(0, 0)
 
 counter = sum(check(line.strip(), all_rules) for line in inp)
 
