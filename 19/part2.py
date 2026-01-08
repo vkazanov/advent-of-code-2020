@@ -2,9 +2,6 @@ import pprint
 from functools import lru_cache
 from dataclasses import dataclass
 
-# inp = open("input-test-2.txt")
-inp = open("input-2.txt")
-
 @dataclass
 class Ref: i: int
 
@@ -14,21 +11,15 @@ class Seq: parts: tuple
 @dataclass
 class Alt: options: tuple
 
-def parse_rule(rules, rule_line):
+def parse_rule(rule_line):
     lhs, rhs = rule_line.split(": ")
-    rules[int(lhs)] = parse_alt(rhs) if " | " in rhs else parse_seq(rhs)
+    return int(lhs), parse_alt(rhs) if " | " in rhs else parse_seq(rhs)
 
 def parse_alt(alt_line):
     return Alt(tuple(parse_seq(opt) for opt in alt_line.split(" | ")))
 
 def parse_seq(seq_line):
     return Seq(tuple(Ref(int(c)) if c.isdigit() else c[1:-1] for c in seq_line.split()))
-
-all_rules = {}
-for line in inp:
-    line = line.strip()
-    if not line: break
-    parse_rule(all_rules, line)
 
 def check(line, rules):
 
@@ -60,7 +51,12 @@ def check(line, rules):
 
     return len(line) in match_rule(0, 0)
 
-counter = sum(check(line.strip(), all_rules) for line in inp)
+# inp = open("input-test-2.txt")
+inp = open("input-2.txt")
+
+rule_block, input_block = inp.read().split("\n\n")
+all_rules = dict(parse_rule(line) for line in rule_block.splitlines())
+counter = sum(check(line.strip(), all_rules) for line in input_block.splitlines())
 
 print(counter)
 assert(counter == 267)
