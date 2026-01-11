@@ -1,3 +1,4 @@
+All AoC years moved to a [[https://github.com/vkazanov/advent-of-code][single repo]]
 
 * Day 18
 
